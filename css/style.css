@@ -1,0 +1,92 @@
+:root {
+    --blue: #081f5f;
+    --white: #ffffff;
+    --huewaco-color:#000080;
+    --huewaco-red-color: #FF0000;
+    --checked-color: #8CC63F;
+    --dark: #333333;
+    --dark-light: #808080;
+    --border: rgba(255, 255, 255, 0.45);
+    --record: #D11241;
+    --action: #FBB03B;
+    --info: #8CC63F;
+}
+html, body {
+    margin: 0;
+    font-size: 14px;
+}
+.huewaco .logo{
+    width: 100%;
+    height: auto;
+    max-width: 80px;
+    padding: 5px 5px 5px 0;
+    margin-top: 10px;
+}
+.huewaco .title{
+    color: var(--huewaco-color);
+    font-weight: bold;
+}
+.huewaco .red
+{
+    color: var(--huewaco-red-color);
+}
+.huewaco .sub-title
+{
+    padding-top: 10px;
+    padding-bottom: 5px;
+    font-weight: bold;
+    text-align: center;
+    font-size: 16px;
+    text-transform: uppercase;
+}
+.huewaco .align-left{
+    text-align: left;
+}
+.huewaco .align-right{
+    text-align: right;
+}
+.huewaco .align-justify{
+    text-align: justify;
+}
+.huewaco .align-center{
+    text-align: center;
+}
+.huewaco .middle{
+    margin-top: auto;
+    margin-bottom: auto;
+}
+.huewaco .bold {
+    font-weight: bold;
+}
+.huewaco button{
+    margin-top: 10px;
+}
+div.footer{
+    margin-top: 2em;
+    padding-top: 2em;
+    background: var(--huewaco-color);
+    color: var(--white);
+}
+.toast:not(.showing):not(.show) {
+    opacity: 0;
+    display: none;
+}
+.huewaco .toast .hide{
+    display: none;
+}
+.huewaco .toast .show{
+    display: block;
+}
+.huewaco .form-group{
+    padding-top: 5px;
+}
+@media only screen and (max-width: 430px) {
+    .huewaco .title, .huewaco .sub-title{
+        font-size: 1em;
+    }
+    .huewaco .logo{
+        max-width: 60px;    
+        margin-top: 1em;
+        padding: 5px;
+    }
+}

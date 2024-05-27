@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="authoring-tool" content="Adobe_Animate_CC">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no"> 
+<meta name="ad.size" content="width=640,height=1280">
+<title>Yêu cầu lắp đặt nước</title>
+<!-- jquery -->
+<script src="./plug-in/jquery/jquery-3.7.1.min.js"></script>
+<script src="./plug-in/jquery-ui-1.13.3/jquery-ui.min.js"></script>
+<link href="./plug-in/jquery-ui-1.13.3/jquery-ui.min.css" rel="stylesheet">
+<!-- Bootstrap v5.0.2 -->
+<script src="./plug-in/bootstrap_v5.0.2/js/bootstrap.bundle.min.js"></script>
+<link href="./plug-in/bootstrap_v5.0.2/css/bootstrap.min.css" rel="stylesheet">
+<link href="./css/style.css" rel="stylesheet">
+<script src="./js/huewaco-lib-obfuscator.js"></script>
+<script>
+	let timeoutID = 0;
+	// Khai báo thư viện 
+	var huewaco = new huewaco_lib(
+			{
+				base_url: "https://huewaco.net.vn:65443" // config base url để sử dụng API
+			}
+		);
+	window.addEventListener('load', async function() {
+		// Sử dụng datetimepicker
+		let maxDate = new Date();
+		let minDate = new Date();
+		minDate.setFullYear(minDate.getFullYear() - 150);
+		maxDate.setFullYear(maxDate.getFullYear() - 15);
+		const yearRange = minDate.getFullYear() + ':' + maxDate.getFullYear();
+		console.log(minDate, maxDate, yearRange);
+		$(function () {
+			$("#customer-birthday").datepicker(
+				{
+					gotoCurrent: true,
+					dateFormat: "dd/mm/yy",
+					defaultDate: Date.now(),
+					yearRange: yearRange,
+					maxDate: maxDate,
+					minDate: minDate,
+					autoClose: true,
+					changeMonth: true,
+      				changeYear: true
+				}
+			).datepicker("setDate",'now');
+		});
+		await huewaco.init();
+		// render thông tin quận huyện, phường xã
+		DistrictHTMLObj =  document.getElementById("inputDistrict");
+		DistrictHTMLObj != null && huewaco.districts.data.forEach(element =>{
+			var option = document.createElement("option");
+			option.text = element.DistrictName;
+			option.value = element.DistrictID;
+			DistrictHTMLObj.add(option);
+		});
+		DistrictHTMLObj != null && DistrictHTMLObj.addEventListener("change", function(){
+			var wardHTMLObj = document.getElementById("inputWard");
+			wardHTMLObj != null && (wardHTMLObj.innerHTML = "<option selected disable value=''>Vui lòng chọn...</option>");
+			let wards = huewaco.getTheWardsByDistrictID(DistrictHTMLObj.value);
+			wards != null && wardHTMLObj != null &&  wards.forEach(element => {
+				var option = document.createElement("option");
+				option.text = element.WardName;
+				option.value = element.WardID;
+				wardHTMLObj.add(option);
+			});
+		});
+		// Lấy thông tin user HueS
+		let i = 0;
+		let state = huewaco.getParam("state");
+		if(!state || state == "") return;
+		const data = await huewaco.readAccessTokenHueS(state);
+		console.log(data);
+		if(data != null && data != "")
+		{
+			try
+			{
+				console.log("access_token");
+				// Lấy thông tin user HueS
+				const JSON_data = data;
+				if(JSON_data["access_token"] != null && JSON_data["access_token"] != "")
+				{
+					huewaco.setCookie("state", JSON_data["state"], 10);
+					const user = await huewaco.getUserInfo(JSON_data["access_token"]);
+					if(user != null && user != "")
+					{
+						// Hiển thị thông tin user lên form.
+						$("#customer-name").val(user.name);
+						$("#customer-birthday").val(user.birthdate);
+						$("#customer-id").val((user.citizenId !== undefined && user.citizenId != "") ? user.citizenId : user.identityCardId);
+						$("#customer-phone").val(user.phone);
+						$("#customer-email").val((user.email !== undefined && user.email != "") ? user.email : "");
+					}
+				}
+			}
+			catch(err)
+			{
+				console.log(err);
+			}
+		}
+	}, false);
+	async function submit()
+	{
+		const data = {
+			LoaiYC: $('input[name="optionRadios"]:checked').val(),
+			TenKH: $("#customer-name").val(),
+			NgaySinh:$("#customer-birthday").val(),
+			CCCD: $("#customer-id").val(),
+			Email: $("#customer-email").val(),
+			SDT: $("#customer-phone").val(),
+			SoNha: $("#customer-address-no").val(),
+			DuongPho: $("#customer-address").val(),
+			MaPhuong: $('#inputWard').find(":selected").val(),
+			NoiDung: $("#request-content").val(),
+			NgayTao: huewaco.getDateToString(),
+			maQuan: $('#inputDistrict').find(":selected").val()
+		};
+		const result = await huewaco.waterInstallationRequest(data);
+		if(result["code"] == 0)
+		{
+			//Thành công!
+			const myModal = document.getElementById('modal-success')
+			const bootstrapModal = new bootstrap.Modal(myModal);
+			bootstrapModal.show();
+			let timer = myModal.getElementsByClassName("timer").item(0);
+			timeoutID = setTimeout(setCloseTime, 1000, timer);			
+			setTimeout(function(){bootstrapModal.hide();}, 5000);
+			myModal.addEventListener('hidden.bs.modal', () => {
+				clearTimeout(timeoutID);
+				window.location.reload();
+			});
+			//const toastSuccess = document.getElementById('successToast');
+			// const toast = new bootstrap.Toast(toastSuccess);
+			// toastSuccess.addEventListener('hidden.bs.toast', () => {
+			//  window.location.reload();
+			//  clearTimeout(timeoutID);
+			// })			
+			// toast.show();
+			// let timer = toastSuccess.getElementsByClassName("timer").item(0);
+			// timeoutID = setTimeout(setCloseTime, 1000, timer);
+		}
+		else
+		{
+			const myModal = document.getElementById('modal-error');
+			const bootstrapModal = new bootstrap.Modal(myModal);
+			bootstrapModal.show();
+			let timer = myModal.getElementsByClassName("timer").item(0);
+			timeoutID = setTimeout(setCloseTime, 1000, timer);
+			myModal.addEventListener('hidden.bs.modal', () => {
+				clearTimeout(timeoutID);
+			});
+			setTimeout(function(){bootstrapModal.hide();}, 5000);
+			// Lỗi
+			// const errorToast = document.getElementById('errorToast');
+			// const toast = new bootstrap.Toast(errorToast);
+			// toast.show();
+			// errorToast.addEventListener('hidden.bs.toast', () => {
+			//  clearTimeout(timeoutID);
+			// })
+			// let timer = errorToast.getElementsByClassName("timer").item(0);
+			// timeoutID = setTimeout(setCloseTime, 1000, timer);
+		}
+	}
+	function setCloseTime(timerHTML)
+	{
+		console.log(timerHTML.innerHTML);
+		clearTimeout(timeoutID);
+		const count = Number(timerHTML.innerHTML);
+		timerHTML.innerHTML = count - 1;
+		if(count > 0)
+		{
+			timeoutID = setTimeout(setCloseTime, 1000, timerHTML);
+		}
+	}
+</script>
+</head>
+<body style="margin:0px;">  	
+	<div class="container huewaco">		
+		<div class="row">
+			<!-- Modal -->
+			<div class="modal" id="modal-success" tabindex="-1">
+				<div class="modal-dialog modal-dialog-centered">
+				  <div class="modal-content">
+					<div class="modal-header">
+						<img src="./images/icon_03.png" style="max-width: 30px; height: auto;" class="rounded me-2" alt="Thành công">
+					  	<h5 class="modal-title me-auto" >Thông báo!</h5>
+						  <small>Tự động đóng cửa sổ sau <span class="timer">5</span> giây</small>
+					  	<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+					</div>
+					<div class="modal-body">
+					  <p class="center">Đã gửi thông tin yêu cầu thành công!<br/> HueWACO sẽ liên hệ quý khách trong thời gian sớm nhất.</p>
+					</div>
+					<div class="modal-footer">
+					  <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+					  <!-- <button type="button" class="btn btn-primary">Save changes</button> -->
+					</div>
+				  </div>
+				</div>
+			</div>
+			<div class="modal" id="modal-error" tabindex="-1">
+				<div class="modal-dialog modal-dialog-centered">
+				  <div class="modal-content">
+					<div class="modal-header">
+						<img src="./images/icon_05.png" style="max-width: 30px; height: auto;" class="rounded me-2" alt="Thành công">
+					  	<h5 class="modal-title me-auto" >Thông báo!</h5>
+						  <small>Tự động đóng cửa sổ sau <span class="timer">5</span> giây</small>
+					  	<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+					</div>
+					<div class="modal-body">
+					  <p>Đã có lỗi, vui lòng thử lại sau!</p>
+					</div>
+					<div class="modal-footer">
+					  <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+					  <!-- <button type="button" class="btn btn-primary">Save changes</button> -->
+					</div>
+				  </div>
+				</div>
+			</div>
+			<!-- End Modal -->
+			<!-- Toast -->
+			<!-- <div aria-live="polite" aria-atomic="true" class="d-flex justify-content-center align-items-center w-100" style="position: relative; height: 0;">
+				<div id="successToast" class="toast top-50" role="alert" aria-live="assertive" aria-atomic="true" data-bs-config='{"delay":0, "autohide":true}' style="transform: translate(0%, 200%) !important; margin-top: 50%; position: absolute;">
+					<div class="toast-header">
+						<img src="./images/icon_03.png" style="max-width: 50px; height: auto;" class="rounded me-2" alt="Thành công">
+						<strong class="me-auto">Thông báo!</strong>
+						<small>Tự động đóng cửa sổ sau <span class="timer">5</span> giây</small>
+						<button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+					</div>
+					<div class="toast-body">
+						Đã gửi thông tin yêu cầu thành công!
+					</div>
+				</div>
+			</div>
+				
+			<div aria-live="polite" aria-atomic="true" class="d-flex justify-content-center align-items-center w-100" style="position: relative; height: 0;">
+				<div id="errorToast" class="toast top-50" role="alert" aria-live="assertive" aria-atomic="true" data-bs-config='{"delay":0, "autohide":true}' style="transform: translate(0%, 200%) !important; margin-top: 50%; position: absolute;">
+					<div class="toast-header">
+						<img src="./images/icon_05.png" style="max-width: 50px; height: auto;" class="rounded me-2" alt="Thành công">
+						<strong class="me-auto">Thông báo!</strong>
+						<small>Tự động đóng cửa sổ sau <span class="timer">5</span> giây</small>
+						<button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+					</div>
+					<div class="toast-body">
+						Đã có lỗi, vui lòng thử lại sau!
+					</div>
+				</div>
+			</div> -->
+			<!-- End Toast -->
+			<header>
+				<div class="row">
+					<div class="col-12 col-md-8">
+						<div class="row">
+							<div class="col-12 title middle" style="display: flex;">
+								<p><img class="logo" src="./images/logo.png" alt="HueWACO"/></p>
+								<p class="middle" style="padding-left: 10px;"><span class="red">CỔNG THÔNG TIN CHĂM SÓC KHÁCH HÀNG</span><br/><span>CÔNG TY CỔ PHẦN CẤP NƯỚC THỪA THIÊN HUẾ</span></p>
+							</div>
+						</div>
+					</div>
+					<div class="col-12 col-md-4 d-none d-md-block middle">
+						<p class="bold align-right"><span><img style="width: 100%; height: auto; max-width: 50px; padding: 5px;"  src="images/phone.gif"/></span>Hotline 24/7: <span class="red">1800 0036</span></p>
+					</div>
+				</div>
+			</header>
+		</div>
+		<div class="row">
+			<div class="sub-title">
+				Yêu cầu lắp đặt nước
+			</div>
+		</div>
+		<form class="needs-validation" novalidate action="javascript:submit();">
+		<div class="form-group">
+			<label class="bold" for="customer-name">Họ tên khách hàng<span class="red">(*)</span></label>
+			<input type="text" class="form-control" id="customer-name" placeholder="Nhập họ tên khách hàng" required>
+			<div class="invalid-feedback">
+				Vui lòng nhập thông tin họ tên khách hàng.
+			  </div>
+		  </div>
+		  <div class="form-group">
+			<label class="bold" for="customer-birthday">Ngày sinh<span class="red">(*)</span></label>
+			<input type="text" class="form-control" id="customer-birthday" placeholder="Nhập thông tin ngày sinh" required>
+			<div class="invalid-feedback">
+				Vui lòng nhập thông tin ngày sinh.
+			  </div>
+		  </div>
+		  <div class="form-group">
+			<label class="bold" for="customer-id">Số CMND/ CCCD<span class="red">(*)</span></label>
+			<input type="number" class="form-control" id="customer-id" placeholder="Nhập số CMND/ CCCD" required>
+			<div class="invalid-feedback">
+				Vui lòng nhập thông tin số CMND/ CCDD.
+			  </div>
+		  </div>
+		  <div class="form-group">
+			<label class="bold" for="customer-phone">Số điện thoại<span class="red">(*)</span></label>
+			<input type="number" class="form-control" id="customer-phone" placeholder="Nhập số điện thoại" required>
+			<div class="invalid-feedback">
+				Vui lòng nhập thông tin số điện thoại.
+			  </div>
+		  </div>
+		  <div class="form-group">
+			<label class="bold" for="customer-email">Email address</label>
+			<input type="email" class="form-control" id="customer-email" aria-describedby="emailHelp" placeholder="Nhập địa chỉ email">
+		  </div>
+		  <div class="form-group">
+			<label class="bold" for="inputDistrict">Quận/ Huyện<span class="red">(*)</span></label>
+			<select id="inputDistrict" class="form-control" required>
+			  <option selected disabled  value="">Vui lòng chọn...</option>
+			</select>
+			<div class="invalid-feedback">
+				Vui lòng chọn thông tin Quận/ Huyện.
+			</div>
+		  </div>
+		  <div class="form-group">
+			<label class="bold" for="inputWard">Phường/ Xã<span class="red">(*)</span></label>
+			<select id="inputWard" class="form-control" required>
+				<option selected disabled  value="">Vui lòng chọn...</option>
+			</select>
+			<div class="invalid-feedback">
+				Vui lòng chọn thông tin Phường/ Xã.
+			</div>
+		  </div>
+		  <div class="form-group">
+			<label class="bold" for="customer-address-no">Số nhà<span class="red">(*)</span></label>
+			<input type="text" class="form-control" id="customer-address-no" placeholder="Số nhà" required>
+			<div class="invalid-feedback">
+				Vui lòng nhập thông tin số nhà.
+			  </div>
+		  </div>
+		  <div class="form-group">
+			<label class="bold" for="customer-address">Đường phố<span class="red">(*)</span></label>
+			<input type="text" class="form-control" id="customer-address" placeholder="Đường phố" required>
+			<div class="invalid-feedback">
+				Vui lòng nhập thông đường phố.
+			  </div>
+		  </div>
+		  <div class="form-group">
+			<label class="bold">Loại hình yêu cầu</label>
+			<div class="form-check">
+				<input class="form-check-input" type="radio" name="optionRadios" id="optionRadios1" value="YCCM" checked>
+				<label class="form-check-label" for="optionRadios1">
+				 Lắp đặt nước mới
+				</label>
+			  </div>
+			  <div class="form-check">
+				<input class="form-check-input" type="radio" name="optionRadios" id="optionRadios2" value="YCNH">
+				<label class="form-check-label" for="optionRadios2">
+				  Lắp đặt nước ngắn hạn
+				</label>
+			  </div>
+			  <div class="form-check disabled">
+				<input class="form-check-input" type="radio" name="optionRadios" id="optionRadios3" value="YCSC" disabled>
+				<label class="form-check-label" for="optionRadios3">
+					Thay nâng, dời, dò tìm nước chảy
+				</label>
+			  </div>
+		  </div>
+		  <div class="form-group">
+			<label class="bold" for="request-content">Nội dung yêu cầu</label>
+			<textarea type="text" class="form-control" id="request-content" placeholder="Nội dung yêu cầu"></textarea>
+		  </div>
+		  
+		  <button type="submit" class="btn btn-primary">Submit</button>
+		</form>		
+	</div>
+	<div class="container-fluid huewaco footer">
+		<div class="container">
+			<div class="row">
+				<div class="col md-margin-bottom-40">
+					<div class="headline">
+						<p class="sub-title align-left">Thông tin liên hệ</p>
+					</div>
+					<ul class="list-unstyled address-footer">
+						<li><span class="bold">Địa chỉ:</span> 103 Đường Bùi Thị Xuân, Phường Phường Đúc, Thành phố Huế, Tỉnh Thừa Thiên Huế</li>
+						<li><span class="bold">Hotline 24/7:</span> 1800 0036</li>
+						<li><span class="bold">Email:</span> cskh@huewaco.com.vn</li>
+					</ul>
+				</div>
+			</div>
+		</div>
+	</div>
+</body>
+</html>
