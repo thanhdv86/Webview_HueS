@@ -22,6 +22,12 @@ html, body {
     padding: 5px 5px 5px 0;
     margin-top: 10px;
 }
+.huewaco .inactive{
+    display: none;
+}
+.huewaco .active{
+    display: block;
+}
 .huewaco .title{
     color: var(--huewaco-color);
     font-weight: bold;
@@ -82,10 +88,10 @@ div.footer{
 }
 @media only screen and (max-width: 430px) {
     .huewaco .title, .huewaco .sub-title{
-        font-size: 1em;
+        font-size: 0.85em;
     }
     .huewaco .logo{
-        max-width: 60px;    
+        max-width: 55px;    
         margin-top: 1em;
         padding: 5px;
     }

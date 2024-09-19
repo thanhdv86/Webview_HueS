@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="authoring-tool" content="Adobe_Animate_CC">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no"> 
+<meta name="ad.size" content="width=640,height=1280">
+<title>Yêu cầu lắp đặt nước</title>
+<!-- jquery -->
+<script src="./plug-in/jquery/jquery-3.7.1.min.js"></script>
+<script src="./plug-in/jquery-ui-1.13.3/jquery-ui.min.js"></script>
+<link href="./plug-in/jquery-ui-1.13.3/jquery-ui.min.css" rel="stylesheet">
+<!-- Bootstrap v5.0.2 -->
+<script src="./plug-in/bootstrap_v5.0.2/js/bootstrap.bundle.min.js"></script>
+<link href="./plug-in/bootstrap_v5.0.2/css/bootstrap.min.css" rel="stylesheet">
+<link href="./css/style.css" rel="stylesheet">
+<script src="./js/huewaco-lib-obfuscator.js"></script>
+<script>
+	let timeoutID = 0;
+	// Khai báo thư viện 
+	var huewaco = new huewaco_lib(
+			{
+				//base_url: "https://huewaco.net.vn:65443" // config base url để sử dụng API
+			}
+		);
+	window.addEventListener('load', async function() {
+		// Sử dụng datetimepicker
+		const data = huewaco.userMapping();
+        console.log(data);
+	}, false);
+	
+</script>
+</head>
+<body style="margin:0px;">  	
+	
+</body>
+</html>

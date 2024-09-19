@@ -154,6 +154,24 @@ var huewaco_lib = function(settings)
 				return null;
 			});
 		};
+		huewaco_lib.prototype.userMapping = async function()
+		{
+			const endPoint = "/api/hues/get-auth-premission";
+			var settings = {
+                "url": this.settings.base_url + endPoint + "?state=user_mapping",
+                "method": "GET",
+				"cache": this.settings.cache,
+                "timeout": this.settings.timeout,
+            };
+			console.log(settings);
+			return await $.ajax(settings).done(function (response) {
+                return response;
+                
+            }).fail(function(data) {
+				console.log("Error: ", data);
+				return null;
+			});
+		};
 		huewaco_lib.prototype.getUserInfo = async function(access_token)
 		{
 			const endPoint = "/api/hues/get-user-info";
@@ -182,7 +200,7 @@ var huewaco_lib = function(settings)
 		{
 			const endPoint = "/api/water-installation";			
 			var settings = {
-                "url": this.settings.base_url + endPoint,
+                "url": this.settings.base_url + endPoint + "?referral=hues",
                 "method": "POST",
                 "cache": this.settings.cache,
                 "timeout": this.settings.timeout,
@@ -191,6 +209,28 @@ var huewaco_lib = function(settings)
 					"access_token": "1299ef8cfe980df2eed6c578aaa360a7",
                 },
                 "data": JSON.stringify(res),
+            };
+			return await $.ajax(settings).done(function (response) {                
+                console.log(response);
+                return response;
+                
+            }).fail(function(data) {
+				console.log("Error: ", data);
+				return null;
+			});
+		}
+		huewaco_lib.prototype.waterInstallationStatus = async function(type, value)
+		{
+			const endPoint = "/api/water-installation-status";			
+			var settings = {
+                "url": this.settings.base_url + endPoint + "?type=" + type + "&value=" + value,
+                "method": "GET",
+                "cache": this.settings.cache,
+                "timeout": this.settings.timeout,
+                "headers": {
+                    "Content-Type": "application/json",
+					"access_token": "1299ef8cfe980df2eed6c578aaa360a7",
+                }
             };
 			return await $.ajax(settings).done(function (response) {                
                 console.log(response);
@@ -248,5 +288,14 @@ var huewaco_lib = function(settings)
 				data = "0" + data;
 			}
 			return data;
-		}
+		};
+		this.getBuffer = function(resolve) {
+			var reader = new FileReader();
+			reader.readAsArrayBuffer(fileData);
+			reader.onload = function() {
+			  var arrayBuffer = reader.result
+			  var bytes = new Uint8Array(arrayBuffer);
+			  resolve(bytes);
+			}
+		};
 	};

@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Thanh toán bằng QRCode</title>
+    <!-- Bootstrap -->
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">    
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>  
+    <script src="./js/jquery.scrollme.js"></script>
+	<script src="https://www.google.com/recaptcha/enterprise.js?render=6LetN-spAAAAADRD0rFRbyW8L3hCHw7X3tOoiWF9"></script>
+	<!-- Replace the variables below. -->
+	
+    <style type="text/css">
+      body{
+        font-size: 14px;
+      }
+      ul, li{
+        font-size: 12px;
+      }
+      .content{
+        height: 440px;
+        background: url("images/bg-330x420.jpg") no-repeat;
+        background-size: cover;
+      }
+      .title{
+        padding: 15px 15px 5px;
+        color: #fff;
+        font-weight: bold;
+		    text-shadow: 1px 1px 1px rgba(0,0,0,0.56);
+      }
+      input{
+        margin: 10px 0;
+        border-radius: 10px;
+        border: 2px solid #ccc;
+        text-align: center;
+      }
+      button{
+        padding: 5px 15px;
+        border: 1px solid #cccccc;
+        background: #0164CA;
+        color: #fff;
+        font-weight: bold;
+        border-radius: 10px;
+      }
+      .qrcode-content {
+        text-align: center;
+        padding: 10px 10px 0;
+        margin: 0 10px;
+        height: 355px;
+        max-width: 315px;
+        background: #fff;
+        border: 1px solid #cccccc;
+        border-radius: 10px;
+      }
+      #img-qrcode{
+        width:80px;
+        height:80px;
+      }
+      .section-02, .section-03{
+        display: none;
+      }
+      .notice{
+        color: red;
+        font-style: italic;
+      }
+      .info{
+        text-align: left;
+        font-weight: bold;
+      }
+      .info p{
+        padding-bottom: 0;
+        margin-bottom: 5px;
+      }
+      .lds-hourglass {
+        position: absolute;
+        z-index: 100;
+        margin: 100px 113px;
+        width: 80px;
+        height: 80px;
+      }
+      .lds-hourglass:after {
+        content: " ";
+        display: block;
+        border-radius: 50%;
+        width: 0;
+        height: 0;
+        margin: 8px;
+        box-sizing: border-box;
+        border: 32px solid #fff;
+        border-color: #fff transparent #fff transparent;
+        animation: lds-hourglass 1.2s infinite;
+      }
+      #loading{
+        display: none;
+      }
+      @keyframes lds-hourglass {
+        0% {
+          transform: rotate(0);
+          animation-timing-function: cubic-bezier(0.55, 0.055, 0.675, 0.19);
+        }
+        50% {
+          transform: rotate(900deg);
+          animation-timing-function: cubic-bezier(0.215, 0.61, 0.355, 1);
+        }
+        100% {
+          transform: rotate(1800deg);
+        }
+      }
+      #reload{
+        padding: 5px 0 0 5px;
+        display: none;
+        width:20px; 
+        height:20px; 
+        position: absolute; 
+        z-index: 999; 
+        top:0; 
+        left:0
+      }
+    </style>
+    <script type="text/javascript">
+      /*window.addEventListener('load', function(){
+        btnGetQRCode = document.getElementById('get-qrcode');
+        btnReload =  document.querySelector('#reload');
+        if(btnReload){
+          btnReload.addEventListener('click', function(){
+            document.querySelector('.section-02').style.display = 'none';
+            document.querySelector('.section-03').style.display = 'none';
+            document.querySelector('.section-01').style.display = 'block';
+            document.querySelector('#reload').style.display = 'none';
+            document.querySelector('#customer_code').value = '';
+          });
+        }
+        if(btnGetQRCode == undefined) return;
+        btnGetQRCode.addEventListener('click', function(){
+          console.log(isNaN(idkh));
+          // Kiểm tra IDKH nhập vào có đúng quy định hay chưa.
+          var idkh = document.querySelector('#customer_code').value;
+          if(!(!isNaN(idkh) && idkh.length == 6))
+          {
+            document.querySelector('.notice').innerHTML = "IDKH không hợp lệ vui lòng kiểm tra lại!";
+            return;
+          }
+          document.querySelector('.section-01').style.display = 'none';
+          document.querySelector('#loading').style.display = 'block';
+          // Lấy dữ liệu QR Code
+          var xhr = new XMLHttpRequest();
+          xhr.withCredentials = true;
+
+          xhr.addEventListener("readystatechange", function() {
+            if(this.readyState === 4) {
+              document.querySelector('#reload').style.display = 'block';
+              var data = JSON.parse(this.responseText);
+              console.log(data);
+              if(data == null){
+                console.log("Không có thông tin thanh toán");
+                document.querySelector('.section-03').style.display = 'block';
+                document.querySelector('#loading').style.display = 'none';
+                return;
+              }
+              // QRCode
+              var imgQRCode = document.querySelector('#img-qrcode');
+              imgQRCode.src = 'data:image/jpeg;base64,' + data.QRContent;
+              // Thông tin khách hàng
+              var name = document.querySelector('#name');
+              name.innerHTML = data.Infos.name;
+              var address = document.querySelector('#address');
+              address.innerHTML = data.Infos.address;
+              var billContent = "<ul>";
+                Array.from(data.Bills).forEach(element => {
+                billContent += '<li> Kỳ ' + element.Period + ': ' + element.Money.format(0, 3, '.') + 'đ</li>'
+              });
+              billContent += "</ul>";
+              var payments = document.querySelector('#payment');
+              payments.innerHTML = billContent;
+              document.querySelector('.section-02').style.display = 'block';
+              document.querySelector('#loading').style.display = 'none';
+            }
+          });
+
+          xhr.open("GET", "https://zalo.huewaco.net.vn/api/payoo/qrcode?customer_code=" + idkh + "&from=&to=");
+
+          xhr.send();
+        });
+      });*/
+      /**
+       * Number.prototype.format(n, x, s, c)
+       * 
+       * @param integer n: độ dài của số thập phân (phần lẻ)
+       * @param integer x: độ dài của phần trước dấu thập phân
+       * @param mixed   s: Ký tự phân cách phần trước dấu thập phân 
+       * @param mixed   c: Ký tự phân cách số thập phân
+       */
+      Number.prototype.format = function(n, x, s, c) {
+          var re = '\\d(?=(\\d{' + (x || 3) + '})+' + (n > 0 ? '\\D' : '$') + ')',
+              num = this.toFixed(Math.max(0, ~~n));
+
+          return (c ? num.replace('.', c) : num).replace(new RegExp(re, 'g'), '$&' + (s || ','));
+      };
+    </script>
+	<script>
+
+	  function onSubmit(token) {
+		//console.log(token);
+		//document.getElementById("demo-form").submit();
+		// Kiểm tra IDKH nhập vào có đúng quy định hay chưa.
+		  document.getElementById("frm-qrcode").submit();
+          
+	  };
+	  window.addEventListener('load', function(){
+		const frm = document.getElementById("frm-qrcode");
+		frm.submit = function(){
+			submit();
+		}
+	  });
+	  function submit()
+	  {
+		var token = document.getElementById('g-recaptcha-response').value;
+		console.log(token);
+		
+		var idkh = document.querySelector('#customer_code').value;
+          if(!(!isNaN(idkh) && idkh.length == 6))
+          {
+            document.querySelector('.notice').innerHTML = "IDKH không hợp lệ vui lòng kiểm tra lại!";
+            return;
+          }
+          document.querySelector('.section-01').style.display = 'none';
+          document.querySelector('#loading').style.display = 'block';
+		  // Lấy dữ liệu QR Code
+          var xhr = new XMLHttpRequest();
+          xhr.withCredentials = true;
+
+          xhr.addEventListener("readystatechange", function() {
+            if(this.readyState === 4) {
+              document.querySelector('#reload').style.display = 'block';
+              var data = JSON.parse(this.responseText);
+              console.log(data);
+              if(data == null){
+                console.log("Không có thông tin thanh toán");
+                document.querySelector('.section-03').style.display = 'block';
+                document.querySelector('#loading').style.display = 'none';
+                return;
+              }
+              // QRCode
+              var imgQRCode = document.querySelector('#img-qrcode');
+              imgQRCode.src = 'data:image/jpeg;base64,' + data.QRContent;
+              // Thông tin khách hàng
+              var name = document.querySelector('#name');
+              name.innerHTML = data.Infos.name;
+              var address = document.querySelector('#address');
+              address.innerHTML = data.Infos.address;
+              var billContent = "<ul>";
+                Array.from(data.Bills).forEach(element => {
+                billContent += '<li> Kỳ ' + element.Period + ': ' + element.Money.format(0, 3, '.') + 'đ</li>'
+              });
+              billContent += "</ul>";
+              var payments = document.querySelector('#payment');
+              payments.innerHTML = billContent;
+              document.querySelector('.section-02').style.display = 'block';
+              document.querySelector('#loading').style.display = 'none';
+            }
+        });		
+
+		xhr.open("GET", "http://localhost:4992/api/payoo/qrcode?customer_code=" + idkh + "&from=&to=&recapcha_key=" + token);
+
+		xhr.send();
+	  }
+	</script>
+  </head>
+  <body>
+    <div class="container content" style="text-align: center;">
+      <img id="reload" src="./images/reload.png" title="reload">
+      <div class="row">
+        <div class="col-12">
+          <div class="lds-hourglass" id="loading"></div>
+        </div>
+      </div>
+      <div class="row">
+        <section class="col-12 section section-01">
+          <div class="row">
+            <div class="col-12">
+              <p class="title">NHẬP IDKH ĐỂ THANH TOÁN</p>
+            </div>
+            <div class="col-12">
+				<form id="frm-qrcode" name="frm-qrcode" method="get" action="">
+					<div class="row bill-content">
+						<div class="col-12">
+						<input id="customer_code" name="customer_code" type="text" maxlength="6" placeholder="Nhập 6 chữ số IDKH" onkeypress='return event.charCode >= 48 && event.charCode <= 57' />
+						</div>
+						<div class="col-12"><p class="notice"></p></div>
+						<div class="col-12">
+							<!--<button id="get-qrcode">Tiếp tục</button>-->				  
+							<button  id="get-qrcode" class="g-recaptcha"
+								data-sitekey="6LetN-spAAAAADRD0rFRbyW8L3hCHw7X3tOoiWF9"
+								data-callback='onSubmit'
+								data-action='submit'>
+							Tiếp tục
+							</button>
+						</div>
+					</div>  
+				</form>
+            </div>         
+          </div>
+        </section> 
+      </div>      
+      <div class="row">
+        <section class="col-12 section section-02">
+          <div class="row">
+            <div class="col-12">
+              <p class="title">SỬ DỤNG APP NGÂN HÀNG QUÉT MÃ ĐỂ THANH TOÁN</p>
+            </div>
+            <div class="col-12">
+              <div class="row bill-content" style="text-align: left;">
+                <div class="col-12 qrcode-content">
+                  <div class="info" id="info">
+                    <p>Khách hàng: <span id="name"></span></p>                  
+                    <p>Địa chỉ: <span id="address"></span></p>
+                    <div id="payment"></div>
+                  </div>
+                  <img id="img-qrcode" src="" alt="QRCode thanh toán tiền nước" />
+                  <div style="text-align: left;">
+                    <p><strong>Lưu &yacute;:</strong></p>
+                    <ul>
+                      <li><em>Kh&ocirc;ng thay đổi số tiền v&agrave; nội dung thanh to&aacute;n hiển thị tr&ecirc;n m&agrave;n h&igrave;nh</em></li>
+                      <li><em>CỔNG THANH TO&Aacute;N PAYOO hỗ trợ xử l&yacute; thanh to&aacute;n (<a href="tel:1900545478">1900 54 54 78</a>)</em></li>
+                    </ul>
+                  </div>
+                </div>
+              </div>  
+            </div>         
+          </div>
+        </section>    
+      </div>
+      <div class="row">
+        <section class="col-12 section section-03">
+          <div class="row">
+            <div class="col-12">
+              <p class="title">Chưa đến kỳ thanh toán!</p>
+            </div>                    
+          </div>
+        </section>    
+      </div>
+    </div>
+  </body>
+</html>

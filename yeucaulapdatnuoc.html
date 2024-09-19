@@ -14,13 +14,13 @@
 <script src="./plug-in/bootstrap_v5.0.2/js/bootstrap.bundle.min.js"></script>
 <link href="./plug-in/bootstrap_v5.0.2/css/bootstrap.min.css" rel="stylesheet">
 <link href="./css/style.css" rel="stylesheet">
-<script src="./js/huewaco-lib-obfuscator.js"></script>
+<script src="./js/huewaco-lib.js"></script>
 <script>
 	let timeoutID = 0;
 	// Khai báo thư viện 
 	var huewaco = new huewaco_lib(
 			{
-				base_url: "https://huewaco.net.vn:65443" // config base url để sử dụng API
+				//base_url: "https://huewaco.net.vn:65443" // config base url để sử dụng API
 			}
 		);
 	window.addEventListener('load', async function() {
@@ -100,8 +100,40 @@
 			}
 		}
 	}, false);
+	async function getFileBytes(evt) {
+		var files = evt.files;
+		// Pass the file to the blob, not the input[0].
+		fileData = new Blob([files[0]]);
+		// Pass getBuffer to promise.
+		var promise = new Promise(getBuffer);
+		// Wait for promise to be resolved, or log error.
+		return promise.then(function(data) {
+		// Here you can pass the bytes to another function.
+		console.log(data);
+		return data;
+		}).catch(function(err) {
+		console.log('Error: ',err);
+		});
+	};
+	function getBuffer(resolve) {
+		var reader = new FileReader();
+		reader.readAsArrayBuffer(fileData);
+		reader.onload = function() {
+		var arrayBuffer = reader.result
+		var bytes = new Uint8Array(arrayBuffer);
+		resolve(bytes);
+		}
+	};
 	async function submit()
 	{
+		let CCCDBytes = null;
+		const fileUpload = document.getElementById("identityCardId-front");
+		try {
+			CCCDBytes = await getFileBytes(fileUpload);
+			console.log(CCCDBytes);
+		} catch (error) {
+			console.log(error);
+		}
 		const data = {
 			LoaiYC: $('input[name="optionRadios"]:checked').val(),
 			TenKH: $("#customer-name").val(),
@@ -114,7 +146,8 @@
 			MaPhuong: $('#inputWard').find(":selected").val(),
 			NoiDung: $("#request-content").val(),
 			NgayTao: huewaco.getDateToString(),
-			maQuan: $('#inputDistrict').find(":selected").val()
+			maQuan: $('#inputDistrict').find(":selected").val(),
+			CCCD_Front: CCCDBytes,
 		};
 		const result = await huewaco.waterInstallationRequest(data);
 		if(result["code"] == 0)
@@ -357,6 +390,14 @@
 		  <div class="form-group">
 			<label class="bold" for="request-content">Nội dung yêu cầu</label>
 			<textarea type="text" class="form-control" id="request-content" placeholder="Nội dung yêu cầu"></textarea>
+		  </div>		  
+		  <div class="form-group">
+			<label class="bold" for="identityCardId-front">CCCD/CMND mặt trước</label>
+			<input type="file" class="form-control" id="identityCardId-front" placeholder="CCCD/CMND mặt trước"></input>
+		  </div>
+		  <div class="form-group">
+			<label class="bold" for="identityCardId-back">CCCD/CMND mặt sau</label>
+			<input type="file" class="form-control" id="identityCardId-back" placeholder="CCCD/CMND mặt sau"></input>
 		  </div>
 		  
 		  <button type="submit" class="btn btn-primary">Submit</button>

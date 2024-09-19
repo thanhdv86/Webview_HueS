@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="authoring-tool" content="Adobe_Animate_CC">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no"> 
+<meta name="ad.size" content="width=640,height=1280">
+<title>Tra cứu, theo dõi - Yêu cầu lắp đặt nước</title>
+<!-- jquery -->
+<script src="./plug-in/jquery/jquery-3.7.1.min.js"></script>
+<script src="./plug-in/jquery-ui-1.13.3/jquery-ui.min.js"></script>
+<link href="./plug-in/jquery-ui-1.13.3/jquery-ui.min.css" rel="stylesheet">
+<!-- Bootstrap v5.0.2 -->
+<script src="./plug-in/bootstrap_v5.0.2/js/bootstrap.bundle.min.js"></script>
+<link href="./plug-in/bootstrap_v5.0.2/css/bootstrap.min.css" rel="stylesheet">
+<link href="./css/style.css" rel="stylesheet">
+<script src="./js/huewaco-lib.js"></script>
+<script>
+	let timeoutID = 0;
+	// Khai báo thư viện 
+	var huewaco = new huewaco_lib(
+			{
+				//base_url: "https://huewaco.net.vn:65443" // config base url để sử dụng API
+			}
+		);
+	window.addEventListener('load', async function() {
+
+		await huewaco.init();
+		// Lấy thông tin user HueS
+		let i = 0;
+		let state = huewaco.getParam("state");
+		if(!state || state == "") return;
+		const data = await huewaco.readAccessTokenHueS(state);
+		console.log(data);
+		if(data != null && data != "")
+		{
+			try
+			{
+				console.log("access_token");
+				// Lấy thông tin user HueS
+				const JSON_data = data;
+                
+				if(JSON_data["access_token"] != null && JSON_data["access_token"] != "")
+				{
+					huewaco.setCookie("state", JSON_data["state"], 10);
+					const user = await huewaco.getUserInfo(JSON_data["access_token"]);
+					if(user != null && user != "")
+					{
+						// Lấy thông tin user làm dữ liệu đầu vào để tự động tìm kiếm thông tin
+						$('#search-option').val("phone").change();
+						$("#search-value").val(user.phone);
+						submit();
+					}
+                    else
+                    {
+                        // display search form
+                        displayModal();
+                    }
+				}
+			}
+			catch(err)
+			{
+				console.log(err);
+			}
+		}
+        else
+        {
+            // display search form
+            displayModal();
+        }
+	}, false);
+	
+    function displayModal(name = "modal-search")
+    {
+        // display search form
+        const myModal = document.getElementById(name)
+        const bootstrapModal = new bootstrap.Modal(myModal);
+        bootstrapModal.show();
+        /*let timer = myModal.getElementsByClassName("timer").item(0);
+        timeoutID = setTimeout(setCloseTime, 1000, timer);			
+        setTimeout(function(){bootstrapModal.hide();}, 5000);
+        myModal.addEventListener('hidden.bs.modal', () => {
+            clearTimeout(timeoutID);
+            //window.location.reload();
+        });*/
+    }
+	function closeModal(name = "modal-search")
+	{
+		const myModal = document.getElementById(name);
+		const btnClose = myModal.getElementsByClassName("btn-close").item(0);
+		 // create click event
+		 var event = new MouseEvent('click', {
+                view: window,
+                bubbles: true,
+                cancelable: true
+            });
+            var cancelled = !btnClose.dispatchEvent(event);
+            if (cancelled) {
+                // A handler called preventDefault.
+                console.log("cancelled");
+            } else {
+                // None of the handlers called preventDefault.
+                console.log("not cancelled");
+            }
+	}
+	function retry()
+	{
+		closeModal("modal-error");
+		displayModal();
+	}
+	async function submit()
+	{
+		closeModal();
+		const data = {
+			type: $('#search-option').find(":selected").val(),
+			value: $("#search-value").val()
+		};
+		const result = await huewaco.waterInstallationStatus(data.type, data.value);
+		if(result["code"] == 0)
+		{
+			//Thành công!
+			console.log(result);
+			const data = result.data;
+			// Hiển thị thông tin user lên form.
+			$("#request-id").val(data.id);
+			$("#customer-name").val(data.name);
+			$("#customer-id").val((data.cccd !== undefined && data.cccd != "") ? data.cccd : "");
+			$("#customer-phone").val(data.phone);
+			$("#customer-email").val((data.email !== undefined && data.email != "") ? data.email : "");
+			$("#request-content").val((data.content !== undefined && data.content != "") ? data.content : "");
+			// Sử dụng datetimepicker để hiển thị thông tin ngày sinh
+			let maxDate = new Date();
+			let minDate = new Date();
+			minDate.setFullYear(minDate.getFullYear() - 150);
+			maxDate.setFullYear(maxDate.getFullYear() - 15);
+			const yearRange = minDate.getFullYear() + ':' + maxDate.getFullYear();
+			console.log(minDate, maxDate, yearRange);
+			$(function () {
+				$("#customer-birthday").datepicker(
+					{
+						gotoCurrent: true,
+						dateFormat: "dd/mm/yy",
+						defaultDate: Date.now(),
+						yearRange: yearRange,
+						maxDate: maxDate,
+						minDate: minDate,
+						autoClose: true,
+						changeMonth: true,
+						changeYear: true
+					}
+				).datepicker("setDate", new Date(data.birthday)).attr("disabled", true);
+			});
+			// render table for request status
+			const tr = '<tr><th scope="row">$key</th><td>$value</td></tr>';
+			let tbody = "";
+			Object.entries(data.process_description).map(([key, value]) => {
+				tbody += tr.replace("$key", key).replace("$value", value);
+			});
+			document.getElementById("tbody-status").innerHTML = tbody;
+		}
+		else
+		{
+			const myModal = document.getElementById('modal-error');
+			const bootstrapModal = new bootstrap.Modal(myModal);
+			bootstrapModal.show();
+			let timer = myModal.getElementsByClassName("timer").item(0);
+			timeoutID = setTimeout(setCloseTime, 1000, timer);
+			myModal.addEventListener('hidden.bs.modal', () => {
+				clearTimeout(timeoutID);
+			});
+			setTimeout(function(){
+				bootstrapModal.hide();
+				displayModal("modal-search");
+			}, 5000);
+		}
+	}
+	function setCloseTime(timerHTML)
+	{
+		console.log(timerHTML.innerHTML);
+		clearTimeout(timeoutID);
+		const count = Number(timerHTML.innerHTML);
+		timerHTML.innerHTML = count - 1;
+		if(count > 0)
+		{
+			timeoutID = setTimeout(setCloseTime, 1000, timerHTML);
+		}
+	}
+</script>
+</head>
+<body style="margin:0px;">  	
+	<div class="container huewaco">		
+		<div class="row" id="section-1">
+			<!-- Modal -->
+			<div class="modal" id="modal-search" tabindex="-1">
+				<div class="modal-dialog modal-dialog-centered">
+                    <form class="needs-validation" novalidate action="javascript:submit();">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <img src="./images/icon_search.png" style="max-width: 30px; height: auto;" class="rounded me-2" alt="Thành công">
+                                <h5 class="modal-title me-auto" style="padding-right: 10px;">Vui lòng nhập thông tin tìm kiếm</h5>
+                                <!-- <small>Tự động đóng cửa sổ sau <span class="timer">5</span> giây</small> -->
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                                <div class="form-group">
+                                    <label class="bold" for="search-option">Tùy chọn tìm kiếm</label>
+                                    <select id="search-option" class="form-control" required>
+                                        <option selected disabled  value="">Vui lòng chọn...</option>
+                                        <option value="phone">Số điện thoại</option>
+                                        <option value="email">Email</option>
+                                        <option value="cccd">CCCD/ CMND</option>
+                                        <option value="id">Mã đơn đăng ký</option>
+                                    </select>
+                                </div>                        
+                                <div class="form-group">
+                                    <label class="bold" for="search-value">Giá trị tìm kiếm</label>
+                                    <input type="text" class="form-control" id="search-value" placeholder="Nhập thông tin cần tìm" required>
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+                            <button type="submit" class="btn btn-primary">Tìm</button>
+                        </div>
+                    </form>
+				  </div>
+				</div>
+			</div>
+			<div class="modal" id="modal-error" tabindex="-1">
+				<div class="modal-dialog modal-dialog-centered">
+				  <div class="modal-content">
+					<div class="modal-header">
+						<img src="./images/icon_05.png" style="max-width: 30px; height: auto;" class="rounded me-2" alt="Thành công">
+					  	<h5 class="modal-title me-auto" >Thông báo!</h5>
+						  <small>Tự động đóng cửa sổ sau <span class="timer">5</span> giây</small>
+					  	<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+					</div>
+					<div class="modal-body">
+					  <p>Không tìm thấy thông tin yêu cầu lắp đặt nước!</p>
+					</div>
+					<div class="modal-footer">
+					  <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+					  <button type="button" class="btn btn-primary" onclick="retry();">Thủ lại</button>
+					</div>
+				  </div>
+				</div>
+			</div>
+			<header>
+				<div class="row">
+					<div class="col-12 col-md-8">
+						<div class="row">
+							<div class="col-12 title middle" style="display: flex;">
+								<p><img class="logo" src="./images/logo.png" alt="HueWACO"/></p>
+								<p class="middle" style="padding-left: 10px;"><span class="red">CỔNG THÔNG TIN CHĂM SÓC KHÁCH HÀNG</span><br/><span>CÔNG TY CỔ PHẦN CẤP NƯỚC THỪA THIÊN HUẾ</span></p>
+							</div>
+						</div>
+					</div>
+					<div class="col-12 col-md-4 d-none d-md-block middle">
+						<p class="bold align-right"><span><img style="width: 100%; height: auto; max-width: 50px; padding: 5px;"  src="images/phone.gif"/></span>Hotline 24/7: <span class="red">1800 0036</span></p>
+					</div>
+				</div>
+			</header>
+		</div>
+        <div class="row" id="section-2">
+            <div class="row">
+                <div class="sub-title">
+                    Thông tin yêu cầu lắp đặt nước
+                </div>
+            </div>
+            <div class="row">
+                <div class="form-group">
+                    <label class="bold" for="request-id">Mã đơn đăng ký</label>
+                    <input type="text" class="form-control" id="request-id" readonly>
+                </div>
+                    <div class="form-group">
+                    <label class="bold" for="customer-name">Họ tên khách hàng</label>
+                    <input type="text" class="form-control" id="customer-name" readonly>
+                </div>
+                <div class="form-group">
+                    <label class="bold" for="customer-birthday">Ngày sinh</label>
+                    <input type="text" class="form-control" id="customer-birthday" readonly aria-readonly="true" aria-expanded="false">
+                </div>
+                <div class="form-group">
+                    <label class="bold" for="customer-id">Số CMND/ CCCD</label>
+                    <input type="number" class="form-control" id="customer-id" readonly>
+                </div>
+                <div class="form-group">
+                    <label class="bold" for="customer-phone">Số điện thoại</label>
+                    <input type="number" class="form-control" id="customer-phone" readonly>
+                </div>
+                <div class="form-group">
+                    <label class="bold" for="customer-email">Email address</label>
+                    <input type="email" class="form-control" id="customer-email" aria-describedby="emailHelp" readonly>
+                </div>	            
+                <div class="form-group">
+                    <label class="bold" for="request-content">Nội dung yêu cầu</label>
+                    <textarea type="text" class="form-control" id="request-content" readonly></textarea>
+                </div>	  
+            </div>
+            <div class="row">
+                <div class="sub-title">
+                    Trạng thái đơn yêu cầu lắp đặt nước
+                </div>
+            </div>
+            <div class="row">
+				<div class="col-12">
+					<table class="table table-striped">
+						<thead style="background: #0164ca3b;">
+						<tr>
+							<th scope="col">Thời gian</th>
+							<th scope="col">Nội dung</th>
+						</tr>
+						</thead>
+						<tbody id="tbody-status">
+						
+						</tbody>
+					</table>
+				</div>
+            </div>	
+        </div>
+	</div>
+	<div class="container-fluid huewaco footer">
+		<div class="container">
+			<div class="row">
+				<div class="col md-margin-bottom-40">
+					<div class="headline">
+						<p class="sub-title align-left">Thông tin liên hệ</p>
+					</div>
+					<ul class="list-unstyled address-footer">
+						<li><span class="bold">Địa chỉ:</span> 103 Đường Bùi Thị Xuân, Phường Phường Đúc, Thành phố Huế, Tỉnh Thừa Thiên Huế</li>
+						<li><span class="bold">Hotline 24/7:</span> 1800 0036</li>
+						<li><span class="bold">Email:</span> cskh@huewaco.com.vn</li>
+					</ul>
+				</div>
+			</div>
+		</div>
+	</div>
+</body>
+</html>
